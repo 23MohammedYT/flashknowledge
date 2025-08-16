@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>ومضة معرفة</title>
+        <link rel="stylesheet" href="../styles.css" />
+        <link rel="icon" href="favicon.ico" type="image/x-icon" />
+        <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    </head>
+    <body>
+        <div id="top-bar" class="top-bar"></div>
+        <div class="container" id="main-container">
+            <div id="rightbar" class="section1"></div>
+            <div class="section2 article-page">
+                <h2 class="article-title">
+                    من نحن
+                </h2>
+                <hr class="article-divider">
+                <div class="article-content">
+                    <p>
+                        مرحبًا بك في <strong>ومضة معرفة</strong>، منصتك المفضلة لاكتشاف المعلومات المثيرة والحقائق المدهشة في مختلف المجالات.
+                        نسعى إلى تقديم محتوى معرفي بأسلوب بسيط وجذاب يلهم فضولك ويوسع آفاقك.
+                    </p>
+                    <p>
+                        من خلال قناتنا على يوتيوب <a href="https://www.youtube.com/@flash-knowledge" target="_blank">ومضة معرفة</a>،
+                        نقدم مقاطع فيديو قصيرة وشيقة تحتوي على معلومات علمية، تاريخية، وثقافية، مصممة لتناسب جميع الأعمار.
+                    </p>
+                    <p>
+                        هدفنا هو نشر المعرفة وتبسيط المعلومة، لأننا نؤمن بأن <em>"المعرفة قوة"</em> وأن كل ومضة معلومة قد تغيّر طريقة
+                        تفكيرك أو تلهمك لفعل شيء جديد.
+                    </p>
+                    <h2>تابعنا على</h2>
+                    <ul class="social-links">
+                        <li><a href="https://www.youtube.com/@flash-knowledge" target="_blank"><i class="fab fa-youtube"></i> يوتيوب</a></li>
+                        <li><a href="https://paypal.me/23MohammedYT" target="_blank"><i class="fas fa-hand-holding-heart"></i> التبرع</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div id="leftbar" class="section3"></div>
+        </div>
+        <footer id="footer" class="footer"></footer>
+
+        <script src="scripts.js"></script>
+        <script>
+            let articlesData = [];
+
+            // Handle category click - redirect to results.html?kw=category
+            function handleCategoryClick(category, event) {
+                event.stopPropagation();
+                event.preventDefault();
+                console.log('Category clicked:', category);
+                
+                // Encode the category to handle Arabic text and special characters
+                const encodedCategory = encodeURIComponent(category);
+                // Redirect to results page with kw parameter
+                window.location.href = `http://127.0.0.1:5500/results.html?kw=${encodedCategory}`;
+            }
+
+            // Add click handlers to existing static categories
+            function addCategoryClickHandlers() {
+                const categoryLinks = document.querySelectorAll('.categories ul li a');
+                
+                categoryLinks.forEach(link => {
+                    link.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        // Get category name from link text (remove count)
+                        const categoryText = this.textContent.trim();
+                        const category = categoryText.replace(/\s+\d+$/, ''); // Remove count at the end
+                        handleCategoryClick(category, event);
+                    });
+                });
+            }
+
+            // Update categories box dynamically
+            function updateCategoriesBox(articles) {
+                const categoryMap = {};
+
+                articles.forEach(article => {
+                    if (article.categories) {
+                        article.categories.forEach(cat => {
+                            categoryMap[cat] = (categoryMap[cat] || 0) + 1;
+                        });
+                    }
+                });
+
+                const categoriesBox = document.querySelector('.categories ul');
+                if (categoriesBox) {
+                    categoriesBox.innerHTML = Object.entries(categoryMap)
+                        .map(([cat, count]) => `<li><a href="#" onclick="handleCategoryClick('${cat}', event)"><span>${cat}</span> <span class="count">${count}</span></a></li>`)
+                        .join('');
+                }
+            }
+
+            // Fetch and load articles for categories
+            async function loadArticlesForCategories() {
+                try {
+                    const response = await fetch('../posts.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    articlesData = await response.json();
+                    updateCategoriesBox(articlesData);
+
+                } catch (error) {
+                    console.error('Error loading articles for categories:', error);
+                    // If JSON fails, still add handlers to existing static categories
+                    addCategoryClickHandlers();
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                loadArticlesForCategories();
+                // Also add handlers to existing static categories immediately
+                addCategoryClickHandlers();
+            });
+        </script>
+        <script type="text/javascript">
+            function googleTranslateElementInit() {
+                new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+            }
+        </script>
+        <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    </body>
+</html>

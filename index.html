@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="ومضة معرفة - موقع معلوماتي يقدم مقالات موثوقة ومختصرة في مختلف المجالات." />
+        <meta name="keywords" content="معلومات, معرفة, مقالات, تعليم, وامضة معرفة" />
+        <meta name="author" content="ومضة معرفة" />
+        <title>ومضة معرفة</title>
+        <link rel="stylesheet" href="styles.css" />
+        <link rel="icon" href="favicon.ico" type="image/x-icon" />
+        <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    </head>
+    <body>
+        <div id="top-bar" class="top-bar"></div>
+        <div class="container" id="main-container">
+            <div id="rightbar" class="section1"></div>
+            <div class="section2">
+                <div class="starter-title"><i class="fa-solid fa-thumbtack"></i> اخترنا لكم</div>
+                <div class="posts" id="posts-container">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <p>جاري تحميل المقالات...</p>
+                    </div>
+                </div>
+            </div>
+            <div id="leftbar" class="section3"></div>
+        </div>
+        <footer id="footer" class="footer"></footer>
+        
+        <script src="scripts.js"></script>
+        <script src="https://unpkg.com/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script>
+        <script>
+            let articlesData = [];
+            let masonryInstance = null;
+
+            // Handle article click
+            function handleArticleClick(article, event) {
+                if (event.target.classList.contains('category')) {
+                    return;
+                }
+                window.location.href = `/posts/${article.id}.html`;
+            }
+
+            // Handle category click
+            function handleCategoryClick(category, event) {
+                event.stopPropagation();
+                const encodedCategory = encodeURIComponent(category);
+                window.location.href = `http://127.0.0.1:5500/results.html?kw=${encodedCategory}`;
+            }
+
+            // Add click handlers to existing static categories
+            function addCategoryClickHandlers() {
+                const categoryLinks = document.querySelectorAll('.categories ul li a');
+                
+                categoryLinks.forEach(link => {
+                    if (!link.hasAttribute('onclick')) { // Don't add if already has onclick
+                        link.addEventListener('click', function(event) {
+                            event.preventDefault();
+                            const categoryText = this.textContent.trim();
+                            const category = categoryText.replace(/\s+\d+$/, ''); // Remove count
+                            handleCategoryClick(category, event);
+                        });
+                    }
+                });
+            }
+
+            // Create article HTML
+            function createArticleHTML(article) {
+                const isMain = article.type === 'main';
+                const articleClass = isMain ? 'main-article' : 'side-article';
+                const contentClass = isMain ? 'main-article-content' : 'side-article-content';
+                const titleTag = isMain ? 'h2' : 'h3';
+
+                // Categories only for side articles
+                let categoriesHTML = '';
+                if (!isMain && article.categories && article.categories.length > 0) {
+                    categoriesHTML = `<div class="article-category">
+                        ${article.categories.map((cat, index) => 
+                            `<span class="category" onclick="handleCategoryClick('${cat}', event)">${cat}</span>
+                            ${index < article.categories.length - 1 ? '<div style="display: inline;"> | </div>' : ''}`
+                        ).join('')}
+                    </div>`;
+                }
+
+                return `
+                    <article class="${articleClass}" onclick="handleArticleClick(articlesData[${articlesData.indexOf(article)}], event)" data-article-id="${article.id}">
+                        <img src="${article.image}" alt="${article.alt}">
+                        ${categoriesHTML}
+                        <div class="${contentClass}">
+                            <${titleTag}>${article.title}</${titleTag}>
+                            <p>${article.content}</p>
+                            <div class="article-meta">
+                                <span><i class="fas fa-calendar"></i> ${article.date}</span>
+                                <span><i class="fas fa-comment"></i> ${article.comments}</span>
+                            </div>
+                        </div>
+                    </article>
+                `;
+            }
+
+            // Initialize Masonry
+            function initMasonry() {
+                const sideArticlesContainer = document.querySelector('.side-articles');
+                
+                if (sideArticlesContainer && window.innerWidth > 768) {
+                    if (masonryInstance) {
+                        masonryInstance.destroy();
+                    }
+                    
+                    masonryInstance = new Masonry(sideArticlesContainer, {
+                        itemSelector: '.side-article',
+                        columnWidth: '.side-article',
+                        gutter: 20,
+                        fitWidth: false,
+                        horizontalOrder: true,
+                        transitionDuration: '0.3s',
+                        isOriginLeft: false
+                    });
+
+                    const images = sideArticlesContainer.querySelectorAll('img');
+                    let loadedCount = 0;
+
+                    images.forEach(img => {
+                        if (img.complete) {
+                            loadedCount++;
+                            if (loadedCount === images.length) masonryInstance.layout();
+                        } else {
+                            img.onload = () => {
+                                loadedCount++;
+                                masonryInstance.layout();
+                            };
+                        }
+                    });
+                }
+            }
+
+            // Render articles
+            function renderArticles(articles) {
+                const container = document.getElementById('posts-container');
+
+                const mainArticle = articles.find(article => article.type === 'main');
+                const sideArticles = articles.filter(article => article.type === 'side');
+
+                let html = '';
+
+                if (mainArticle) {
+                    html += createArticleHTML(mainArticle);
+                }
+
+                if (sideArticles.length > 0) {
+                    html += '<div class="side-articles">';
+                    sideArticles.forEach(article => {
+                        html += createArticleHTML(article);
+                    });
+                    html += '</div>';
+                }
+
+                container.innerHTML = html;
+
+                setTimeout(() => {
+                    initMasonry();
+                }, 100);
+            }
+
+            // Update categories box dynamically
+            function updateCategoriesBox(articles) {
+                const categoryMap = {};
+
+                articles.forEach(article => {
+                    if (article.categories) {
+                        article.categories.forEach(cat => {
+                            categoryMap[cat] = (categoryMap[cat] || 0) + 1;
+                        });
+                    }
+                });
+
+                const categoriesBox = document.querySelector('.categories ul');
+                if (categoriesBox) {
+                    categoriesBox.innerHTML = Object.entries(categoryMap)
+                        .map(([cat, count]) => `<li><a href="#" onclick="handleCategoryClick('${cat}', event)"><span>${cat}</span> <span class="count">${count}</span></a></li>`)
+                        .join('');
+                }
+            }
+
+            // Fetch and load articles
+            async function loadArticles() {
+                try {
+                    const response = await fetch('posts.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    articlesData = await response.json();
+                    renderArticles(articlesData);
+                    updateCategoriesBox(articlesData);
+                    addCategoryClickHandlers();
+
+                } catch (error) {
+                    console.error('Error loading articles:', error);
+                    document.getElementById('posts-container').innerHTML = `
+                        <div class="loading">
+                            <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i>
+                            <p style="color: #e74c3c;">خطأ في تحميل المقالات: ${error.message}</p>
+                            <p><small>تأكد من وجود ملف posts.json في نفس المجلد</small></p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Resize handler
+            window.addEventListener('resize', () => {
+                clearTimeout(window.resizeTimeout);
+                window.resizeTimeout = setTimeout(() => {
+                    if (masonryInstance) {
+                        masonryInstance.layout();
+                    }
+                }, 250);
+            });
+
+            document.addEventListener('DOMContentLoaded', loadArticles);
+        </script>
+        <script type="text/javascript">
+            function googleTranslateElementInit() {
+                new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+            }
+        </script>
+        <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    </body>
+</html>

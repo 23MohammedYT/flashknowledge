@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>ومضة معرفة</title>
+        <link rel="stylesheet" href="../styles.css" />
+        <link rel="icon" href="favicon.ico" type="image/x-icon" />
+        <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        <style>
+            .contact-form input,
+            .contact-form textarea {
+                border: 1px solid #ddd;
+                transition: 0.5s;
+                outline: none;
+            }
+
+            body.dark-mode .contact-form input,
+            body.dark-mode .contact-form textarea,
+            body.dark-mode .contact-form button {
+                background: #1e1e1e !important;
+                border-color: #333 !important;
+                color: #ddd;
+            }
+
+            body.dark-mode .contact-form button {
+                border: 1px solid #333 !important;
+                transition: 0.5s;
+            }
+
+            body.dark-mode .contact-form button:hover {
+                background-color: #222 !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="top-bar" class="top-bar"></div>
+        <div class="container" id="main-container">
+            <div id="rightbar" class="section1"></div>
+            <div class="section2 article-page">
+                <h2 class="article-title">
+                    اتصل بنا
+                </h2>
+                <hr class="article-divider">
+
+                <div class="article-content">
+                    <p>
+                        إذا كان لديك أي أسئلة أو اقتراحات أو تعليقات، لا تتردد في ملء النموذج أدناه وسنقوم بالرد عليك في أقرب وقت ممكن.
+                    </p>
+
+                    <form style="margin-top: 10px;" class="contact-form" action="https://docs.google.com/forms/u/0/d/e/1FAIpQLSeA1W7U_HX9UMdyefKchpY4IEtI7jd4vwk252QhMp-eUut3vw/formResponse" method="POST" target="hidden_iframe" onsubmit="formSubmitted(event)">
+                        <label for="name">الاسم:</label>
+                        <input type="text" id="name" name="entry.115015847" placeholder="اكتب اسمك" required style="width:100%; padding:10px; margin:8px 0;">
+
+                        <label for="email">البريد الإلكتروني:</label>
+                        <input type="email" id="email" name="entry.801072495" placeholder="اكتب بريدك الإلكتروني" required style="width:100%; padding:10px; margin:8px 0;">
+
+                        <label for="message">:الرسالة</label>
+                        <textarea id="message" name="entry.1215791721" placeholder="اكتب رسالتك هنا..." required style="width:100%; padding:10px; margin:8px 0; min-height: 120px;"></textarea>
+
+                        <button type="submit" style="background: #5a9fd4; color:white; border:none; padding:12px 20px; font-size:16px; border-radius:6px; cursor:pointer;">
+                            إرسال <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+
+                      <iframe name="hidden_iframe" style="display:none;" onload="if(submitted) { alert('✅ تم إرسال الرسالة بنجاح، سيتم مراجعتها قريبًا.'); }"></iframe>
+                </div>
+            </div>
+            <div id="leftbar" class="section3"></div>
+        </div>
+        <footer id="footer" class="footer"></footer>
+
+        <script src="scripts.js"></script>
+        <script>
+            function formSubmitted(e) {
+                e.preventDefault(); // prevent default for now
+                const form = e.target;
+
+                // submit the form
+                form.submit();
+
+                // clear fields
+                form.reset();
+
+                // show success message
+                document.getElementById("success-msg").style.display = "block";
+            }
+
+            let articlesData = [];
+
+            // Handle category click - redirect to results.html?kw=category
+            function handleCategoryClick(category, event) {
+                event.stopPropagation();
+                event.preventDefault();
+                console.log('Category clicked:', category);
+                
+                // Encode the category to handle Arabic text and special characters
+                const encodedCategory = encodeURIComponent(category);
+                // Redirect to results page with kw parameter
+                window.location.href = `http://127.0.0.1:5500/results.html?kw=${encodedCategory}`;
+            }
+
+            // Add click handlers to existing static categories
+            function addCategoryClickHandlers() {
+                const categoryLinks = document.querySelectorAll('.categories ul li a');
+                
+                categoryLinks.forEach(link => {
+                    link.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        // Get category name from link text (remove count)
+                        const categoryText = this.textContent.trim();
+                        const category = categoryText.replace(/\s+\d+$/, ''); // Remove count at the end
+                        handleCategoryClick(category, event);
+                    });
+                });
+            }
+
+            // Update categories box dynamically
+            function updateCategoriesBox(articles) {
+                const categoryMap = {};
+
+                articles.forEach(article => {
+                    if (article.categories) {
+                        article.categories.forEach(cat => {
+                            categoryMap[cat] = (categoryMap[cat] || 0) + 1;
+                        });
+                    }
+                });
+
+                const categoriesBox = document.querySelector('.categories ul');
+                if (categoriesBox) {
+                    categoriesBox.innerHTML = Object.entries(categoryMap)
+                        .map(([cat, count]) => `<li><a href="#" onclick="handleCategoryClick('${cat}', event)"><span>${cat}</span> <span class="count">${count}</span></a></li>`)
+                        .join('');
+                }
+            }
+
+            // Fetch and load articles for categories
+            async function loadArticlesForCategories() {
+                try {
+                    const response = await fetch('../posts.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    articlesData = await response.json();
+                    updateCategoriesBox(articlesData);
+
+                } catch (error) {
+                    console.error('Error loading articles for categories:', error);
+                    // If JSON fails, still add handlers to existing static categories
+                    addCategoryClickHandlers();
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                loadArticlesForCategories();
+                // Also add handlers to existing static categories immediately
+                addCategoryClickHandlers();
+            });
+        </script>
+        <script type="text/javascript">
+            function googleTranslateElementInit() {
+                new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+            }
+        </script>
+        <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    </body>
+</html>
